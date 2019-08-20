@@ -1,4 +1,5 @@
 #include <sys/types.h>
+#include <sys/sem.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -9,6 +10,7 @@
 #include <stdlib.h>
 
 #include "functions.h"
+#include "semaphores.h"
 
 #include <sys/ipc.h> // for shared memory
 #include <sys/shm.h> // for shared memory
@@ -16,7 +18,7 @@
 #define SHM_SIZE 1024 // make a 1K shared memory segment
 
 int main(int argc, char *argv[]){
-    
+printf("HELLOOO\n\n\n\n");    
     int numberOfP;
     numberOfP = atoi(argv[1]);
     printf("I am creating %d processes of type P.\n", numberOfP);
@@ -58,6 +60,30 @@ int main(int argc, char *argv[]){
 //    strncpy(data, "Hello my name is Costas\n", SHM_SIZE);
 
     //===============================================================
+    //		*** Some work for semaphores ***
+    //===============================================================
+
+    int sem_id_read; // read from shared memory
+    int sem_id_write; // write on shared memory
+
+    sem_id_read = semget((key_t)1234, 1, 0666|IPC_CREAT);
+    sem_id_write = semget((key_t)1234, 1, 0666|IPC_CREAT);
+
+    if (!set_semvalue(sem_id_read)){
+	fprintf(stderr, "Failed to initialize semaphore for read\n"); 
+	exit(EXIT_FAILURE);
+    }
+
+    if (!set_semvalue(sem_id_write)){
+	fprintf(stderr, "Failed to initialize semaphore for write\n"); 
+	exit(EXIT_FAILURE);
+    }
+
+
+
+
+
+    //===============================================================
     //		*** PROCESS C WORKS HERE ***
     //===============================================================
 
@@ -66,6 +92,14 @@ int main(int argc, char *argv[]){
     pid = fork();
     if (pid == 0){
         printf("I just created C process with pid: %d.\n", getpid());
+	sleep(3);
+
+	// just going to use semaphores for admission to shared memory
+	if (!semaphore_v(sem_id_read)) exit(EXIT_FAILURE);
+ 	    printf("I AM C AND A I HAVE READ SEGMENT: %s\n", data);
+//	    sleep(5);
+	if (!semaphore_v(sem_id_write)) exit(EXIT_FAILURE);
+
         exit(0);
     }
 
@@ -82,11 +116,15 @@ int main(int argc, char *argv[]){
 
 	    char *randomLine; // this keeps a pointer to the random line chosen from .txt file
 	    randomLine = pickRandomLine(); // functio which returns a random line from .txt file
-	    //printf("Son with pid: %d just picked the line: %s.\n\n", getpid(), randomLine);
-	    printf("writing to segment: \"%s\"\n", randomLine); 
+
+            // *** going to use semaphores for admission to shared memory
+	    printf("Son with pid: %d just picked the line: %s.\n\n", getpid(), randomLine);
+	    if (!semaphore_p(sem_id_write)) exit(EXIT_FAILURE);
+//	    printf("writing to segment: %s", randomLine); 
+	    printf("Semaphore is down from process with pid: %d\n", getpid());
 	    strncpy(data, randomLine, SHM_SIZE);
-
-
+	    sleep(3);
+	    if (!semaphore_p(sem_id_read)) exit(EXIT_FAILURE);
 
 	    exit(0); // child exits. No other work to be done by child P.
         }

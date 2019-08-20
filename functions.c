@@ -7,6 +7,9 @@
 #include "functions.h"
 
 
+#include <sys/types.h>
+#include <unistd.h>
+
 char* pickRandomLine(){
 
     srand(time(0));
@@ -28,8 +31,8 @@ char* pickRandomLine(){
     size_t bufsize = 0;
 
     int lineTaken; // this is the line we are going to take from file
-    lineTaken = rand()%numberOfLines;
-    printf("Linetaken in %d.\n\n", lineTaken);
+    lineTaken = getpid()%numberOfLines;
+//    printf("Linetaken in %d.\n\n", lineTaken);
     
     int lineCounter = 0; // this shows the current line 
     while (getline(&line_buf,&bufsize, fp)){
@@ -38,7 +41,7 @@ char* pickRandomLine(){
         lineCounter++; 
 
     }
-    printf("Line is= %s\n", line_buf);
+//    printf("Line is= %s\n", line_buf);
 
     return line_buf;
 
