@@ -1,5 +1,5 @@
 myprog:	main.o functions.o semaphores.o
-	gcc -o myprog main.o functions.o semaphores.o
+	gcc -o myprog main.o functions.o semaphores.o -lcrypto -lssl
 functions.o:	functions.c functions.h
 	gcc -c functions.c
 semaphores.o:	semaphores.c semaphores.h

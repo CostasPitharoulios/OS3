@@ -169,13 +169,10 @@ for (j=0; j<5; j++){
 	semDown(sem_id_read_in,0);
  	    printf("I AM C AND READ IS LOCKED.I AM C AND A I HAVE READ SEGMENT: %s\n", message[0].lineSent);
 	    	semDown(sem_id_write_out,0);
-	    char Sender[7];
-	    sprintf(Sender, "%s", message[0].sender_pid);
 	    char* hashedMessage = str2md5(message[0].lineSent, strlen(message[0].lineSent));
 	    printf("Hashed: %s\n", hashedMessage);
 	    //semUp(sem_id_read_out,0);
 	semUp(sem_id_write_in,0);
-	sprintf(message[1].sender_pid, "%s", Sender);
         sprintf(message[1].lineSent, "%s", hashedMessage);
             	semUp(sem_id_read_out,0);
 	printf("Semaphore WRITE is UNLOCKED from C\n");
@@ -199,22 +196,15 @@ for (j=0; j<5; j++){
 
             // *** going to use semaphores for admission to shared memory
 	    printf("Son with pid: %d just picked the line: %s.\n\n", getpid(), randomLine);
-//		    semDown(sem_id_nextSend,i); // this process can not send a new message till it reads a message from C
+		    semDown(sem_id_nextSend,i); // this process can not send a new message till it reads a message from C
 	 semDown(sem_id_write_in,0);
-
 	    printf("Semaphore WRITE is locked from process with pid: %d\n", getpid());
 	    //strncpy(data->lineSent, randomLine, sizeof(data->lineSent));
 	    sprintf(message[0].lineSent,"%s",randomLine);
-///	    int int_pid = getpid();
-///	    char Sender[7];
-///	    itoa(int_pid, Sender,10);
-	    sprintf(message[0].sender_pid, "%d", getpid());
-//	    message[0].sender_pid = getpid();
-
 	 semUp(sem_id_read_in,0);
                 semDown(sem_id_read_out,0);
-	    printf("wooooow:I AM PROCESS WITH PID: %d I JUST RECEIVED THIS: %s SENDER's PID WAS: %s\n\n\n\n", getpid(),message[1].lineSent, message[1].sender_pid);
-//		    semUp(sem_id_nextSend,i); //this process has read a message from C so it can send a new one
+	    printf("wooooow: I JUST RECEIVED THIS: %s\n\n\n\n", message[1].lineSent);
+		    semUp(sem_id_nextSend,i); //this process has read a message from C so it can send a new one
 	        semUp(sem_id_write_out,0);
 //	 semUp(sem_id_read_in,0);
 	    printf("Semaphore READ id unlocked from process with pid: %d\n", getpid());

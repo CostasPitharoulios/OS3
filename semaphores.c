@@ -1,49 +1,70 @@
-// ATTENTION: The following functions are right from the OS Lab02 we took during the Semester
+// ATTENTION: The following functions are right from my solution of homeword 1
 
 #include "semaphores.h"
-#include <sys/sem.h>
+
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/sem.h>
+#include <sys/ipc.h>
 
-    int set_semvalue(int sem_id){
-    union semun sem_union;
-    sem_union.val = 1;
-    if (semctl(sem_id, 0, SETVAL, sem_union) == -1)
-	return 0;
-    return 1;
+int semCreate(key_t key, int nsems, int val){
+    int semid,i;
+    union semun arg;
+    int error;
 
+    if ((key < 0) || (nsems <= 0))
+        return -1;
 
-}
+    semid = semget(key, nsems, 0666|IPC_CREAT);
 
+    if (semid < 0)
+        return -1;
 
-    void del_semvalue(int sem_id){
-    union semun sem_union;
-    if (semctl(sem_id, 0, IPC_RMID, sem_union) == -1) 
-	fprintf(stderr, "Failed to delete semaphore\n");
+	arg.val = val;
+    for(i = 0; i < nsems; i++){
 
-}
-
-
-    int semaphore_p(int sem_id){
-    struct sembuf sem_b; 
-    sem_b.sem_num = 0;
-    sem_b.sem_op = -1; /* P() */ 
-    sem_b.sem_flg = SEM_UNDO;
-    if (semop(sem_id, &sem_b, 1) == -1) {
-	fprintf(stderr, "semaphore_p failed\n");
-	return(0); 
+        error = semctl(semid,i,SETVAL,arg);
+        if (error < 0)
+            return -1;
     }
-    return(1); 
+
+    return semid;
+}
+
+int semDown(int semid,int sem_num){
+    struct sembuf sb;
+
+    if((semid < 0) || (sem_num < 0))
+        return -1;
+
+    sb.sem_num = sem_num;
+    sb.sem_op = -1;
+    sb.sem_flg = 0;
+
+    return semop(semid,&sb,1);
+}
+
+int semUp(int semid, int sem_num){
+    struct sembuf sb;
+
+    if((semid < 0) || (sem_num < 0))
+        return -1;
+    sb.sem_num = sem_num;
+    sb.sem_op = 1;
+    sb.sem_flg = 0;
+
+    return semop(semid,&sb,1);
+}
+
+int semDelete(int semid){
+
+    if(semid < 0)
+        return -1;
+
+    return semctl(semid,0,IPC_RMID);
 }
 
 
-    int semaphore_v(int sem_id){
-    struct sembuf sem_b; 
-    sem_b.sem_num = 0;
-    sem_b.sem_op = 1; /* V() */ 
-    sem_b.sem_flg = SEM_UNDO;
-    if (semop(sem_id, &sem_b, 1) == -1) {
-	fprintf(stderr, "semaphore_v failed\n");
-	return(0); 
-    }
-    return(1);
-}
+
