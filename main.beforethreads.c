@@ -5,14 +5,12 @@
 #include <stdio.h>
 #include <time.h>
 
-#include <pthread.h>
 
 #include <string.h>
 #include <stdlib.h>
 
 #include "functions.h"
 #include "semaphores.h"
-#include "threads.h"
 
 #include <sys/ipc.h> // for shared memory
 #include <sys/shm.h> // for shared memory
@@ -20,16 +18,11 @@
 #define SHM_SIZE 1024 // make a 1K shared memory segment
 
 
-
-
 int main(int argc, char *argv[]){
 printf("HELLOOO\n\n\n\n");    
     int numberOfP;
     numberOfP = atoi(argv[1]);
-
-    int numberOfMessagesK = atoi(argv[2]);
     printf("I am creating %d processes of type P.\n", numberOfP);
-    printf("The number of messagges sent from P processes to C will be K=%d\n", numberOfMessagesK);
 
     pid_t pid;
 
@@ -74,8 +67,6 @@ printf("HELLOOO\n\n\n\n");
 	perror("shmat");
 	exit(1);
     }
-
-    message[1].endOfMessages = 0; //this is a flag. 0: more messages yet to come 1:end of messages
 #if 0
 /*
     //--------------------------------------------------------------------
@@ -170,14 +161,14 @@ printf("HELLOOO\n\n\n\n");
     pid = fork();
     if (pid == 0){
         printf("I just created C process with pid: %d.\n", getpid());
-	//sleep(3);
+	sleep(3);
 
 	// just going to use semaphores for admission to shared memory
 int j;
-for (j=0; j<numberOfMessagesK; j++){
+for (j=0; j<5; j++){
 	semDown(sem_id_read_in,0);
-// 	    printf("I AM C AND READ IS LOCKED.I AM C AND A I HAVE READ SEGMENT: %s\n", message[0].lineSent);
-//	    	semDown(sem_id_write_out,0);
+ 	    printf("I AM C AND READ IS LOCKED.I AM C AND A I HAVE READ SEGMENT: %s\n", message[0].lineSent);
+	    	semDown(sem_id_write_out,0);
 	    char Sender[7];
 	    sprintf(Sender, "%s", message[0].sender_pid);
 	    char Line[1024];
@@ -186,16 +177,12 @@ for (j=0; j<numberOfMessagesK; j++){
 //	    printf("Hashed: %s\n", hashedMessage);
 	    //semUp(sem_id_read_out,0);
 	semUp(sem_id_write_in,0);
-	semDown(sem_id_write_out,0);
 	char* hashedMessage = str2md5(Line, strlen(Line));
 	sprintf(message[1].sender_pid, "%s", Sender);
         sprintf(message[1].lineSent, "%s", hashedMessage);
             	semUp(sem_id_read_out,0);
-///	printf("Semaphore WRITE is UNLOCKED from C\n");
+	printf("Semaphore WRITE is UNLOCKED from C\n");
 }
-semDown(sem_id_write_out,0);
-message[1].endOfMessages = 1;
-semUp(sem_id_read_out,0);
         exit(0);
     }
 
@@ -207,53 +194,18 @@ semUp(sem_id_read_out,0);
     for (i=0; i<numberOfP; i++){
 	pid = fork();
 	if (pid==0){ // if this is the child
-
-
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-//		 *** STARTING THE TRHEADS WORK ***
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-//char mess[] = "Hello World";
-//args->num = 5;
-//sprintf(args->str, "%s", mess);
-
-	    pthread_t outds_thread; // we are creating a thread to manage reading messages from C process
-	    struct thread_args *args = malloc(sizeof(struct thread_args)); //this is a struct which keeps the arguments we are going to send to thread function
-
-	    args->semid_read_out = sem_id_read_out; // we are sending the semaphore which says when the thread can read a message from C
-	    args->message = message; // we send a pointer to shared memory where messages of inds and outds are kept
-	    args->processCounter = i;
-	    args->semid_nextSend = sem_id_nextSend;
-	    args->semid_write_out = sem_id_write_out;
-
-            int res;
-	    void *thread_result;
-	    res = pthread_create(&outds_thread, NULL, pthread_function,args);
-	    if (res != 0){
-	        perror("Thread creation failed");
-	        exit(EXIT_FAILURE);
-	    }
-
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
             printf("Just created son with pid: %d from parent with pid %d.\n", getpid(), getppid());
 
 	    char *randomLine; // this keeps a pointer to the random line chosen from .txt file
 	    
-	    for(;;){
 	    randomLine = pickRandomLine(); // functio which returns a random line from .txt file
 
             // *** going to use semaphores for admission to shared memory
 	    printf("Son with pid: %d just picked the line: %s.\n\n", getpid(), randomLine);
-		    semDown(sem_id_nextSend,i); // this process can not send a new message till it reads a message from C
-		printf("letssee\n\n");
-            if (message[1].endOfMessages == 1){
-		printf("BREAKING: END OF LOOPS FOR PROCESS WITH PID: %d\n\n", getpid());
-	        break;
-	    }
+//		    semDown(sem_id_nextSend,i); // this process can not send a new message till it reads a message from C
 	 semDown(sem_id_write_in,0);
 
-///	    printf("Semaphore WRITE is locked from process with pid: %d\n", getpid());
+	    printf("Semaphore WRITE is locked from process with pid: %d\n", getpid());
 	    //strncpy(data->lineSent, randomLine, sizeof(data->lineSent));
 	    sprintf(message[0].lineSent,"%s",randomLine);
 ///	    int int_pid = getpid();
@@ -263,27 +215,19 @@ semUp(sem_id_read_out,0);
 //	    message[0].sender_pid = getpid();
 
 	 semUp(sem_id_read_in,0);
-                //semDown(sem_id_read_out,0);
-//	    printf("wooooow:I AM PROCESS WITH PID: %d I JUST RECEIVED THIS: %s SENDER's PID WAS: %s\n\n\n\n", getpid(),message[1].lineSent, message[1].sender_pid);
+                semDown(sem_id_read_out,0);
+	    printf("wooooow:I AM PROCESS WITH PID: %d I JUST RECEIVED THIS: %s SENDER's PID WAS: %s\n\n\n\n", getpid(),message[1].lineSent, message[1].sender_pid);
 //		    semUp(sem_id_nextSend,i); //this process has read a message from C so it can send a new one
-////	        semUp(sem_id_write_out,0);
+	        semUp(sem_id_write_out,0);
 //	 semUp(sem_id_read_in,0);
-///	    printf("Semaphore READ id unlocked from process with pid: %d\n", getpid());
-            }//end of for
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-//		 *** STARTING THE TRHEADS WORK ***
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	    printf("Waiting for thread to finish...\n");
-	    res = pthread_join(outds_thread, &thread_result);
-	    if (res != 0) {	    
- 	        perror("Thread join failed");
-	        exit(EXIT_FAILURE);
-  	    }
-	    printf("Thread joined, it returned %s\n", (char *)thread_result);
+	    printf("Semaphore READ id unlocked from process with pid: %d\n", getpid());
+
+	    
 
 	    exit(0); // child exits. No other work to be done by child P.
         }
     }
+
 
     //===============================================================
 
@@ -311,7 +255,5 @@ semUp(sem_id_read_out,0);
 
     semDelete(sem_id_read_out);
     semDelete(sem_id_write_out);
-
-    semDelete(sem_id_nextSend);
 
 }
