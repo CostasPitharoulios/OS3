@@ -40,7 +40,7 @@ char* pickRandomLine(){
     size_t bufsize = 0;
 
     int lineTaken; // this is the line we are going to take from file
-    lineTaken = getpid()%numberOfLines;
+    lineTaken = (getpid())%numberOfLines;
 //    printf("Linetaken in %d.\n\n", lineTaken);
     
     int lineCounter = 0; // this shows the current line 
@@ -53,7 +53,6 @@ char* pickRandomLine(){
 
     fclose(fp); //closing .txt file
 
-//    printf("Line is= %s\n", line_buf);
     line_buf[strlen(line_buf)-1] = '\0'; // we do this to remove '\n' from the end of the string
     return line_buf;
 
@@ -87,7 +86,7 @@ int countLines(){
 
     // Close the file
     fclose(fp);
-    printf("The file %s has %d lines\n ", filename, count);
+//    printf("The file %s has %d lines\n ", filename, count);
 
     return count;
 }
@@ -99,12 +98,14 @@ int countLines(){
 
 
 char* str2md5(const char *str, int length){
-    int n;
-    MD5_CTX c;
-    unsigned char digest[16];
-    char *out = (char*)malloc(33);
 
+    int k;
+    char *final = (char*)malloc(33);
+    unsigned char proc[16];
+
+    MD5_CTX c;
     MD5_Init(&c);
+
 
     while (length > 0) {
         if (length > 512) {
@@ -116,12 +117,12 @@ char* str2md5(const char *str, int length){
         str += 512;
     }
 
-    MD5_Final(digest, &c);
+    MD5_Final(proc, &c);
 
-    for (n = 0; n < 16; ++n) {
-        snprintf(&(out[n*2]), 16*2, "%02x", (unsigned int)digest[n]);
+    for (k = 0; k < 16; ++k) {
+        snprintf(&(final[k*2]), 16*2, "%02x", (unsigned int)proc[k]);
     }
 
-    return out;
+    return final;
 
 }
