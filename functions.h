@@ -10,3 +10,5 @@ typedef struct Message{
 int countLines(void);
 char* pickRandomLine(void);
 char* str2md5(const char* str, int length);
+void rand_str(char *dest, size_t length);
+int createRandomTextFile();

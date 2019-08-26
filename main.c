@@ -25,22 +25,34 @@
 int main(int argc, char *argv[]){
 
     // checks if the paremeters given are ok
-    if (argc != 3){
-       printf("ERROR: You gave wrong parameters!\nTip: Type something like \"./myprog 5 10\" where 5 is the number of processes and 10 the number of loops.\n");
+    if (argc != 5){
+       printf("ERROR: You gave wrong parameters!\nTip: Type something like \"./myprog -N 5 -K 10\" where 5 is the number of processes and 10 the number of loops.\n");
        return -1;
     }
 
     int numberOfP; //this is the number of processes P that user wishes to create
-    numberOfP = atoi(argv[1]);
+    int numberOfMessagesK; //this is the number of loops/messages that users wishes to be sent
+    if (strcmp(argv[1],"-N")==0 && strcmp(argv[3],"-K")==0){
+        numberOfP = atoi(argv[2]);
+	numberOfMessagesK = atoi(argv[4]);
+    }
+    else if (strcmp(argv[1], "-K")==0 && strcmp(argv[3],"-N")==0){
+	numberOfP = atoi(argv[4]);
+	numberOfMessagesK = atoi(argv[2]);
+    }
+    else{
+	printf("ERROR: with parameters. After ./myprog type -N <number of processes P> -K <number of loops>\n\n");
+	return -1;
+    }
 
-    int numberOfMessagesK = atoi(argv[2]);  //this is the number of loops/messages that users wishes to be sent
     printf("I am creating %d processes of type P.\n", numberOfP);
     printf("The number of messagges sent from P processes to C will be K=%d\n", numberOfMessagesK);
+    printf("Beginning calculations...\n\n\n");
 
     pid_t pid;
     int status = 0;
 
-
+    createRandomTextFile();
 
     //===============================================================
     // 		*** Some work for SHARED MEMORY ***
@@ -157,7 +169,7 @@ int main(int argc, char *argv[]){
     // just creating the only C process
     pid = fork();
     if (pid == 0){
-        printf("I just created C process with pid: %d.\n", getpid());
+//        printf("I just created C process with pid: %d.\n", getpid());
 	// just going to use semaphores for admission to shared memory
         int j;
         for (j=0; j<numberOfMessagesK; j++){
@@ -172,6 +184,7 @@ int main(int argc, char *argv[]){
 	    char* hashedMessage = str2md5(Line, strlen(Line));
 	    sprintf(message[1].sender_pid, "%s", Sender);
             sprintf(message[1].lineSent, "%s", hashedMessage);
+	    free(hashedMessage);
             semUp(sem_id_read_out,0);
         }
         semDown(sem_id_write_out,0);

@@ -39,6 +39,7 @@ void *pthread_inds_function(void* argp){
     char *randomLine; // this keeps a pointer to the random line chosen from .txt file      
     for(;;){ //keeps trying to send random lines all the time \\ ATTENTION: The loop is going to end when the whole thread gets canceld from main.c
         randomLine = pickRandomLine(); // function which returns a random line from .txt file
+//	printf("RANDOM LINE: %s\n", randomLine);
 	semDown(args->semid_nextSend, args->processCounter);
 	semDown(args->semid_write_in,0);
 	sprintf(args->message[0].lineSent,"%s",randomLine);	
